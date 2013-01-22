@@ -40,11 +40,11 @@ pch.ras <- rasterize(pch, template)
 cch.ras <- rasterize(cch, template)
 
 full.range <- cover(pch.ras,cch.ras)
-values(full.range)[which(values(full.range)!=1)] <- 0
+values(full.range)[which(values(is.na(full.range) == TRUE))] <- 0
 # full.range <- !is.na(full.range)
 
 output <- matrix(NA, nrow=length(select_years),ncol=6)
-rownames(output) <- c("")
+rownames(output) <- c("2000's","2010's","2020's","2030's","2040's","2050's","2060's","2070's","2080's","2090's")
 
 for(i in 1:length(alf_names)){
 	alf_name <- alf_names[i]
@@ -62,7 +62,7 @@ for(i in 1:length(alf_names)){
 	
 	for(k in 1:length(select_years)){
 		years <- unlist(select_years[[k]])
-
+		decadeList <- character()
 		for(year in years){
 			if(year < 2009){
 				decadeList <- append(decadeList,paste(in_path_past,"Age_",median_rep,"_",year,".tif",sep=""),after=length(decadeList))
@@ -72,19 +72,38 @@ for(i in 1:length(alf_names)){
 		}
 
 		# now stack the needed decade data 
-		age <- mean(stack(decadeList))
-		veg <- mean(stack(decadeList))
+		age <- stack(decadeList)
+		veg <- stack(decadeList)
 
-		# subset to the 2 regions we are interested in, within the winter ranges of the herds
-		spruce.age <- age[which(values(full.range) == 1 & (values(veg) == 2 | values(veg) == 3)), drop=F]
-		tundra.age <- age[which(values(veg) == 1 & values(full.range) == 1), drop=F]
-		
-		# here we remove all of the values that are not zero
-		values(spruce.age)[which(values(spruce.age) != 0)] <- NA
-		values(spruce.age)[which(values(spruce.age) == 0)] <- 1
+		# ageStack.spruce <- stack()
+		# ageStack.tundra <- stack()
 
-		values(tundra.age)[which(values(tundra.age) != 0)] <- NA
-		values(tundra.age)[which(values(tundra.age) == 0)] <- 1
+		# # subset to the 2 regions we are interested in, within the winter ranges of the herds
+		# ageStack.spruce <- age[which(getValues(full.range) != 1 & (getValues(veg) != 2 | getValues(veg) != 3)), drop=F]
+		# ageStack.tundra <- age[which(values(veg) == 1 & values(full.range) == 1), drop=F]
+
+		for(j in 1:nlayers(age)){
+			age.cur <- age[[j]]
+			veg.cur <- veg[[j]]
+
+			which(values(full.range) != 1 & (values(veg) != 2 | values(veg) != 3) & values(age) <= 60)
+
+
+			# subset to the 2 regions we are interested in, within the winter ranges of the herds
+			spruce.age <- age[which(values(full.range) == 1 & (values(veg) == 2 | values(veg) == 3)), drop=F]
+			tundra.age <- age[which(values(veg) == 1 & values(full.range) == 1), drop=F]
+			
+			# here we remove all of the values that are not zero
+			values(spruce.age)[which(values(spruce.age) != 0)] <- NA
+			values(spruce.age)[which(values(spruce.age) == 0)] <- 1
+
+			values(tundra.age)[which(values(tundra.age) != 0)] <- NA
+			values(tundra.age)[which(values(tundra.age) == 0)] <- 1
+			
+			ageStack.spruce <- addLayer(ageStack.spruce,spruce.age)
+			ageStack.tundra <- addLayer(ageStack.tundra,tundra.age)
+		}
+
 
 		# lets clump them to count the nunmber of patches
 		spruce.patch <- clump(spruce.age, directions=8)
