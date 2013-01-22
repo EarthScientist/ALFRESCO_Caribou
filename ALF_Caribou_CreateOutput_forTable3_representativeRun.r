@@ -16,7 +16,7 @@ library(maptools)
 setwd("/workspace/UA/malindgren/projects/ALFRESCO/Caribou_Reanalysis/working")
 
 # set an output path
-out_path <- "/workspace/UA/malindgren/projects/ALFRESCO/Caribou_Reanalysis/Output/FINAL_Jan2012/DerivedTables/Table03/"
+out_path <- "/workspace/UA/malindgren/projects/ALFRESCO/Caribou_Reanalysis/Output/Table_03/"
 
 # here are the names used to identify the maps in the aflf otput s
 alf_names <- c("CGCM31", "ECHAM")
@@ -27,7 +27,7 @@ median_reps <- c(72,49) #format c(cccma, echam5)
 # cccma.rep <- 72
 
 # these are the years we will be calculating over
-select_years <- list(list(2000:2009),list(2010:2019),list(2020:2029),list(2030:2039),list(2040:2049),list(2050:2059),list(2060:2069),list(2070:2079),list(2080:2089),list(2090:2099)) # years <- 2009:2100
+years <- 2009:2100
 
 # read in the polygons needed for the analysis
 pch <- shapefile("/workspace/UA/malindgren/projects/ALFRESCO/Caribou_Reanalysis/CaribouGIS/PCH_winter_90kernal.shp")
@@ -43,8 +43,7 @@ full.range <- cover(pch.ras,cch.ras)
 values(full.range)[which(values(full.range)!=1)] <- 0
 # full.range <- !is.na(full.range)
 
-output <- matrix(NA, nrow=length(select_years),ncol=6)
-rownames(output) <- c("")
+output <- matrix(NA, nrow=length(years),ncol=6)
 
 for(i in 1:length(alf_names)){
 	alf_name <- alf_names[i]
@@ -54,26 +53,17 @@ for(i in 1:length(alf_names)){
 	}else{
 		colnames(output) <- c("ECHAM5 Spruce Number of Fires", "ECHAM5 Tundra Number of Fires","ECHAM5 Spruce Avg Patch Size km2","ECHAM5 Tundra Avg Patch Size km2", "ECHAM5 Spruce Total Area Burned km2", "ECHAM5 Tundra Total Area Burned km2")
 	}
-	
+	rownames(output) <- paste(years,sep="")
+
 	print(alf_name)
 	# base path
-	in_path_past <- paste("/workspace/Shared/ALFRESCO_Jacob_Bird/NEW_CaribouSubregionResults/CalibrationResults_Maps1950to2009/Maps/",sep="")
-	in_path_future <- paste("/workspace/Shared/ALFRESCO_Jacob_Bird/NEW_CaribouSubregionResults/",alf_name,"_Maps2009to2100/Maps/",sep="")
+	in_path <- paste("/workspace/Shared/ALFRESCO_Jacob_Bird/NEW_CaribouSubregionResults/",alf_name,"_Maps2009to2100/Maps/",sep="")
 	
-	for(k in 1:length(select_years)){
-		years <- unlist(select_years[[k]])
-
-		for(year in years){
-			if(year < 2009){
-				decadeList <- append(decadeList,paste(in_path_past,"Age_",median_rep,"_",year,".tif",sep=""),after=length(decadeList))
-			}else{
-				decadeList <- append(decadeList,paste(in_path_future,"Age_",median_rep,"_",year,".tif",sep=""),after=length(decadeList))
-			}
-		}
-
-		# now stack the needed decade data 
-		age <- mean(stack(decadeList))
-		veg <- mean(stack(decadeList))
+	for(j in 1:length(years)){
+		year <- years[j]
+		print(year)
+		age <- raster(paste(in_path,"Age_",median_rep,"_",year,".tif",sep=""))
+		veg <- raster(paste(in_path,"Veg_",median_rep,"_",year,".tif",sep=""))
 
 		# subset to the 2 regions we are interested in, within the winter ranges of the herds
 		spruce.age <- age[which(values(full.range) == 1 & (values(veg) == 2 | values(veg) == 3)), drop=F]
